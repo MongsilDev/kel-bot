@@ -30,7 +30,6 @@ from utils.time import KST, kst_at, now_kst
 
 logger = logging.getLogger("kel-bot.dashboard")
 
-_CLOSED_MESSAGE = "신청이 마감되었습니다."
 _STALE_MESSAGE = "추첨이 진행되어 우선권 상태가 변경되었습니다.\n다시 시도해주세요."
 
 
@@ -134,6 +133,12 @@ class DashboardController:
             removal_log=removal_log,
         )
 
+    def _closed_message(self) -> str:
+        return (
+            "신청이 마감되었습니다.\n"
+            f"다음 스크림은 `{self.settings.reset_hour:02d}:00`부터 신청할 수 있습니다."
+        )
+
     def _is_application_window_open(self, scrim_date: str) -> bool:
         state = self.schedule.state
         if state.draw_state.is_application_closed():
@@ -148,7 +153,7 @@ class DashboardController:
         scrim_date = self.schedule.state.draw_state.scrim_date
         if not self._is_application_window_open(scrim_date):
             await interaction.response.send_message(
-                view=info_view(_CLOSED_MESSAGE),
+                view=info_view(self._closed_message()),
                 ephemeral=True,
             )
             return
@@ -166,7 +171,7 @@ class DashboardController:
         async with self.schedule.lock:
             if not self._is_application_window_open(self.schedule.state.draw_state.scrim_date):
                 await interaction.response.send_message(
-                    view=info_view(_CLOSED_MESSAGE),
+                    view=info_view(self._closed_message()),
                     ephemeral=True,
                 )
                 return
