@@ -1,4 +1,4 @@
-"""추첨 분할 로직 — 두 중대(14·15·16팀) + 일반 추첨(≤13) 검증."""
+"""추첨 분할 로직: 두 중대(14, 15, 16팀) + 일반 추첨(≤13) 검증."""
 from models.application import Application, ApplicationStatus, ApplicationStore
 from models.draw_state import DrawState
 from models.priority import PriorityStore
@@ -72,7 +72,7 @@ def test_13_teams_single_lottery(tmp_path):
     assert res.groups is None                  # 두 중대 아님
     assert len(res.selected) == 8
     assert len(res.rejected) == 5
-    assert len(res.granted_priority_regions) == 5  # 탈락 → D+1 우선권
+    assert len(res.granted_priority_regions) == 5  # 탈락 팀에 D+1 우선권
 
 
 def test_8_teams_single_no_reject(tmp_path):
@@ -94,7 +94,7 @@ def test_group_draw_order_is_consecutive_permutation(tmp_path):
 
 
 def test_group_draw_order_persists(tmp_path):
-    """추첨 후 저장→재로드 시 draw_order가 보존된다."""
+    """추첨 후 저장하고 다시 불러올 때 draw_order가 보존된다."""
     store = ApplicationStore(path=tmp_path / "a.json", scrim_date=SCRIM, applications=_apps(15))
     pri = PriorityStore.load(tmp_path / "p.json")
     ds = DrawState.load(tmp_path / "d.json", SCRIM)
@@ -108,7 +108,7 @@ def test_group_draw_order_differs_from_application_order(tmp_path):
     """조 내 표시 순서(draw_order)가 신청순서와 다르다 = 무작위로 섞임."""
     import random
 
-    random.seed(1)  # 결정적 재현 — identity 순열 아님
+    random.seed(1)  # 결정적 재현, identity 순열 아님
     store = ApplicationStore(path=tmp_path / "a.json", scrim_date=SCRIM, applications=_apps(16))
     pri = PriorityStore.load(tmp_path / "p.json")
     ds = DrawState.load(tmp_path / "d.json", SCRIM)
@@ -131,7 +131,7 @@ def test_single_mode_draw_order_differs_from_application_order(tmp_path):
     """1개조 표시 순서(draw_order)가 신청순서와 다르다 = 번호까지 무작위."""
     import random
 
-    random.seed(3)  # 결정적 재현 — identity 순열 아님
+    random.seed(3)  # 결정적 재현, identity 순열 아님
     store = ApplicationStore(path=tmp_path / "a.json", scrim_date=SCRIM, applications=_apps(13))
     pri = PriorityStore.load(tmp_path / "p.json")
     ds = DrawState.load(tmp_path / "d.json", SCRIM)

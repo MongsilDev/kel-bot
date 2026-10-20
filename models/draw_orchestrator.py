@@ -1,4 +1,4 @@
-"""추첨 실행 — 우선권 자동 확정 + 랜덤 추첨."""
+"""추첨 실행: 우선권 자동 확정 + 랜덤 추첨."""
 from __future__ import annotations
 
 import logging
@@ -13,7 +13,7 @@ from utils.time import iso_now
 
 logger = logging.getLogger("kel-bot.draw_orchestrator")
 
-# 이 팀 수 이상이면 8팀 선정 대신 두 중대로 나눠 전원 편성 (14→7/7, 15→8/7, 16→8/8)
+# 이 팀 수 이상이면 8팀 선정 대신 두 중대로 나눠 전원 편성 (14팀 7/7, 15팀 8/7, 16팀 8/8)
 TWO_COMPANY_TEAMS = 14
 
 
@@ -22,11 +22,11 @@ class DrawResult:
     selected: list[Application]
     rejected: list[Application]
     granted_priority_regions: list[str]  # D+1 우선권 발급된 지역
-    groups: dict[str, list[Application]] | None = None  # 두 중대 모드(14·16팀): {"A": 1중대, "B": 2중대}
+    groups: dict[str, list[Application]] | None = None  # 두 중대 모드(14~16팀): {"A": 1중대, "B": 2중대}
 
 
 class DrawOrchestrator:
-    """추첨 의사결정·실행. 멱등성 보장."""
+    """추첨 의사결정과 실행. 멱등성 보장."""
 
     def __init__(
         self,
@@ -50,12 +50,12 @@ class DrawOrchestrator:
         return self.total_active() >= self.team_slots
 
     def attempt_primary_draw(self) -> DrawResult | None:
-        """00:30 1차 추첨 — 8팀 이상이면 추첨, 미달이면 HELD."""
+        """00:30 1차 추첨: 8팀 이상이면 추첨, 미달이면 HELD."""
         if self.draw_state.is_drawn():
             return None
         if self.total_active() >= self.team_slots:
             return self._execute_draw()
-        # 미달 — 보류 모드 전환
+        # 미달: 보류 모드 전환
         if self.draw_state.status != DrawStatus.HELD:
             self.draw_state.status = DrawStatus.HELD
             self.draw_state.save()
@@ -64,7 +64,7 @@ class DrawOrchestrator:
     def attempt_instant_draw(self) -> DrawResult | None:
         """보류(HELD) 상태에서 8팀 도달 시 즉시 추첨.
 
-        00:30 1차 추첨 이전(PENDING)에는 8팀이 차도 추첨하지 않음 — 1차 추첨 시각까지 대기.
+        00:30 1차 추첨 이전(PENDING)에는 8팀이 차도 추첨하지 않음. 1차 추첨 시각까지 대기.
         """
         if self.draw_state.status is not DrawStatus.HELD:
             return None
@@ -73,7 +73,7 @@ class DrawOrchestrator:
         return None
 
     def force_deadline_cancel(self) -> bool:
-        """17:00 데드라인 — 미실행이면 취소 확정, 우선권 소멸."""
+        """17:00 데드라인: 미실행이면 취소 확정, 우선권 소멸."""
         if self.draw_state.deadline_processed:
             return False
         self.draw_state.deadline_processed = True
@@ -102,16 +102,16 @@ class DrawOrchestrator:
         groups: dict[str, list[Application]] | None = None
 
         if len(active) >= TWO_COMPANY_TEAMS:
-            # 14팀 이상 — 두 중대 랜덤 분할, 전원 선정 (탈락 없음, 우선권 미발급).
+            # 14팀 이상: 두 중대 랜덤 분할, 전원 선정 (탈락 없음, 우선권 미발급).
             # 1중대는 올림(많은 쪽), 2중대는 나머지. 정원 초과분(17+, 이론상 X)만 탈락.
-            #   14→7/7, 15→8/7, 16→8/8
+            #   14팀 7/7, 15팀 8/7, 16팀 8/8
             pool = list(active)
             random.shuffle(pool)
-            seated = pool[:two_group_threshold]  # 최대 16명 착석
+            seated = pool[:two_group_threshold]  # 최대 16팀 착석
             a_size = min(team_slots, (len(seated) + 1) // 2)
             group_a = seated[:a_size]
             group_b = seated[a_size:]
-            # seated가 이미 셔플됨 → 조 내 순서(draw_order)도 무작위. 표시 순서로 고정.
+            # seated가 이미 셔플돼 조 내 순서(draw_order)도 무작위. 표시 순서로 고정.
             for i, a in enumerate(group_a):
                 a.group = "A"
                 a.draw_order = i
@@ -134,7 +134,7 @@ class DrawOrchestrator:
                 not_picked = random_pool[remaining_slots:]
                 selected = priority_apps + picked
                 rejected = not_picked
-            # 1개조(단일 8팀) 모드 — 선정 팀 표시 순서(번호)도 무작위로 고정
+            # 1개조(단일 8팀) 모드: 선정 팀 표시 순서(번호)도 무작위로 고정
             draw_seq = list(selected)
             random.shuffle(draw_seq)
             for i, a in enumerate(draw_seq):
@@ -143,12 +143,12 @@ class DrawOrchestrator:
         self.applications.mark_status((a.team_id for a in selected), ApplicationStatus.SELECTED)
         self.applications.mark_status((a.team_id for a in rejected), ApplicationStatus.REJECTED)
 
-        # 실제 신청·확정된 우선권만 소비 처리
+        # 실제 신청하고 확정된 우선권만 소비 처리
         applied_priority_regions = {a.region for a in selected if a.region in priority_regions}
         for region in applied_priority_regions:
             self.priorities.consume(region, scrim_date)
 
-        # 다음날(D+1) 우선권 발급 — 탈락 팀, 신청 시각 빠른 순 상위 8
+        # 다음날(D+1) 우선권 발급: 탈락 팀, 신청 시각 빠른 순 상위 8
         rejected_sorted = sorted(rejected, key=lambda a: a.applied_at)
         next_date = (date.fromisoformat(scrim_date) + timedelta(days=1)).isoformat()
         granted_regions = [a.region for a in rejected_sorted[:team_slots]]

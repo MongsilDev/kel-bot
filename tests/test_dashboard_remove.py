@@ -127,7 +127,7 @@ def test_confirm_remove_revokes_and_logs(tmp_path):
 
 
 def test_handle_manage_shows_panel(tmp_path):
-    # 활성 우선권이 없어도 관리 패널(추가 버튼 포함)은 항상 뜬다.
+    # 활성 우선권이 없어도 관리 패널(추가 버튼 포함)은 항상 표시됨
     ctrl, mgr = _controller(tmp_path)
     it = _Interaction(1, "광주) 홍길동")
     asyncio.run(ctrl.handle_manage_priority(it))
@@ -196,7 +196,7 @@ def test_confirm_add_rejects_when_target_changed_by_draw(tmp_path):
     ctrl, mgr = _controller(tmp_path)
     d = mgr.state.draw_state.scrim_date
     nxt = _next(d)
-    # 오픈 시점: PENDING(target=D). 그 사이 추첨 발생 → DONE(target=D+1)
+    # 오픈 시점: PENDING(target=D). 그 사이 추첨 발생해 DONE(target=D+1)
     mgr.state.draw_state.status = DrawStatus.DONE
     it = _Interaction(1, "광주) 홍길동")
     asyncio.run(ctrl._confirm_add_priority(it, "광주", d))  # opened_target=d(과거)
@@ -245,7 +245,7 @@ def test_confirm_remove_rejects_when_target_changed_by_draw(tmp_path):
     nxt = _next(d)
     # 패널 오픈 시점: PENDING, 오늘(D) 우선권 광주 존재
     mgr.state.priorities.grant(["광주"], d, slot_cap=8)
-    # 그 사이 추첨 발생 → DONE, 내일(D+1)에 우연히 같은 지역 우선권 발급
+    # 그 사이 추첨 발생해 DONE, 내일(D+1)에 우연히 같은 지역 우선권 발급
     mgr.state.draw_state.status = DrawStatus.DONE
     mgr.state.priorities.grant(["광주"], nxt, slot_cap=8)
     it = _Interaction(1, "광주) 홍길동")

@@ -1,4 +1,4 @@
-"""우선권 변경 로그(부여/제거) — 당일 이력 영속화."""
+"""우선권 변경 로그(부여/제거): 당일 이력 영속화."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
@@ -13,7 +13,7 @@ class RemovalEntry:
     region: str
     actor_id: str
     actor_name: str
-    removed_at: str  # ISO8601 — 이벤트 발생 시각
+    removed_at: str  # ISO8601, 이벤트 발생 시각
     scrim_date: str
     action: str = "revoke"  # "grant"(부여) | "revoke"(제거)
 

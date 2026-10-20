@@ -50,7 +50,7 @@ def test_daily_reset_calls_on_reset(tmp_path):
 def test_deadline_cancel_calls_on_reset(tmp_path):
     calls = []
     mgr = _manager(tmp_path, calls)
-    # PENDING + 미달 상태 → 데드라인에서 취소 → 조기 초기화
+    # PENDING + 미달 상태라 데드라인에서 취소되고 조기 초기화
     asyncio.run(mgr._run_deadline())
     assert "reset" in calls
 
@@ -66,7 +66,7 @@ def test_deadline_after_draw_does_not_recreate(tmp_path):
 
 def test_reset_noop_skips_recreate(tmp_path):
     """이미 대상 일자로 초기화돼 있으면(예: 17시 조기초기화 후) 21시 _run_reset은
-    데이터·메시지 모두 스킵한다."""
+    데이터와 메시지 모두 스킵한다."""
     calls = []
     mgr = _manager(tmp_path, calls)
     # 현재 표시 일자를 21시 리셋이 도달할 일자와 동일하게 미리 맞춰 no-op 유도
@@ -77,7 +77,7 @@ def test_reset_noop_skips_recreate(tmp_path):
     mgr.state.draw_state.reset(target)
     calls.clear()
     asyncio.run(mgr._run_reset())
-    assert "reset" not in calls  # no-op → 메시지 재생성 스킵
+    assert "reset" not in calls  # no-op이라 메시지 재생성 스킵
 
 
 def test_reset_actual_change_recreates(tmp_path):

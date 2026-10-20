@@ -73,7 +73,7 @@ class DashboardController:
         try:
             await self._edit_message(self._dashboard_message)
         except (discord.NotFound, discord.Forbidden):
-            logger.warning("대시보드 메시지 손실, 재생성")
+            logger.warning("대시보드 메시지 수정 실패, 재생성")
             self._dashboard_message = None
             await self.setup()
 

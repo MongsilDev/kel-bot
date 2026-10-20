@@ -11,7 +11,7 @@ from bot.manager import run_bot
 from config.logging_config import setup_logging
 from config.settings import SETTINGS  # import 시점에 load_dotenv() 실행
 
-# 장애 추적. settings import로 .env가 로드된 뒤여야 DSN이 잡힌다.
+# 장애 추적. settings import로 .env가 로드된 뒤여야 DSN 값을 읽을 수 있음
 # DSN이 비어 있으면 transport가 없어 어디로도 전송되지 않는다.
 def _sentry_before_send(event, hint):
     """discord 재연결 과정의 일시적 네트워크 에러는 Sentry로 보내지 않는다."""
