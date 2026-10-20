@@ -360,7 +360,7 @@ class DashboardController:
                 await interaction.response.edit_message(view=info_view(_STALE_MESSAGE))
             elif not state.priorities.revoke(region, opened_target):
                 await interaction.response.edit_message(
-                    view=info_view(f"`{region}` 우선권이 이미 없습니다.")
+                    view=info_view(f"`{region}`에는 제거할 우선권이 없습니다.")
                 )
                 return
             else:

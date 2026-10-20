@@ -372,7 +372,7 @@ class _EphemeralPanel(LayoutView):
             return
         try:
             await self.origin.edit_original_response(
-                view=info_view("시간이 지나 닫혔습니다.\n버튼을 다시 눌러주세요.")
+                view=info_view("제한 시간이 지났습니다.\n버튼을 다시 눌러주세요.")
             )
         except discord.HTTPException:
             pass
