@@ -34,7 +34,7 @@ class RemovalEntry:
 
 @dataclass
 class PriorityAuditStore:
-    """우선권 제거 이벤트 로그. 당일분만 노출, 이전 일자는 purge."""
+    """우선권 부여와 제거 이벤트 로그. 당일분만 노출, 이전 일자는 purge."""
 
     path: Path
     entries: list[RemovalEntry] = field(default_factory=list)

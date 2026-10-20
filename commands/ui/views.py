@@ -1,4 +1,4 @@
-"""대시보드/공지/취소 확인 LayoutView."""
+"""대시보드/취소 확인/우선권 관리 LayoutView."""
 from __future__ import annotations
 
 import logging

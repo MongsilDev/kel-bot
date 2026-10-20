@@ -21,7 +21,7 @@ class ParsedNickname:
 def parse(display_name: str) -> ParsedNickname:
     """Discord 표시 닉네임에서 (region, name) 추출.
 
-    형식: `<지역>) <닉네임>`. 지역 뒤 `)` + 공백 + 닉네임.
+    형식: `<지역>) <닉네임>`. 지역 뒤 `)` + 공백 0개 이상 + 닉네임.
     """
     if not display_name:
         raise NicknameFormatError("서버 닉네임이 설정되지 않았습니다.")

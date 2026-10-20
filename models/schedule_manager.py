@@ -40,7 +40,7 @@ class ScheduleManager:
     - RESET_HOUR 일일 리셋
     - DRAW_HOUR:DRAW_MINUTE 1차 추첨, 미달이면 보류
     - DEADLINE_HOUR 데드라인, 미달 취소와 우선권 소멸
-    - 신청/취소 이벤트 시 즉시 추첨 트리거
+    - 신청 이벤트 시 즉시 추첨 트리거
     """
 
     def __init__(

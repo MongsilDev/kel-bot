@@ -102,7 +102,7 @@ class DrawOrchestrator:
         groups: dict[str, list[Application]] | None = None
 
         if len(active) >= TWO_COMPANY_TEAMS:
-            # 14팀 이상: 두 중대 랜덤 분할, 전원 선정 (탈락 없음, 우선권 미발급).
+            # 14팀 이상: 두 중대 랜덤 분할, 16팀까지 전원 선정 (탈락 없음, 우선권 미발급).
             # 1중대는 올림(많은 쪽), 2중대는 나머지. 정원 초과분(17+, 이론상 X)만 탈락.
             #   14팀 7/7, 15팀 8/7, 16팀 8/8
             pool = list(active)
