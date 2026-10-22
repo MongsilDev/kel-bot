@@ -119,7 +119,7 @@ class ApplicationStore:
         had_priority: bool = False,
     ) -> Application:
         if self.by_user(applicant_id):
-            raise ApplicationError("이미 신청하신 상태입니다.")
+            raise ApplicationError("이미 신청했습니다.")
         if self.by_region(region):
             raise ApplicationError(f"`{region}` 지역은 이미 신청되어 있습니다.")
         app = Application(

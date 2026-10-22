@@ -24,7 +24,6 @@ from discord.ui import (
 from discord.utils import escape_markdown
 
 from commands.ui.layout_helpers import (
-    FOOTER_TEXT,
     error_view,
     info_view,
 )
@@ -268,10 +267,10 @@ class DashboardView(LayoutView):
         if is_done:
             if _has_groups(snapshot):
                 children.append(
-                    TextDisplay(content=f"### 1️⃣ 1중대\n{_format_group_lines(snapshot, 'A')}")
+                    TextDisplay(content=f"### 1중대\n{_format_group_lines(snapshot, 'A')}")
                 )
                 children.append(
-                    TextDisplay(content=f"### 2️⃣ 2중대\n{_format_group_lines(snapshot, 'B')}")
+                    TextDisplay(content=f"### 2중대\n{_format_group_lines(snapshot, 'B')}")
                 )
             else:
                 selected = _format_selected_lines(snapshot)
@@ -302,8 +301,9 @@ class DashboardView(LayoutView):
         children.append(
             TextDisplay(
                 content=(
-                    f"-# `{snapshot.reset_at}` 초기화 / `{snapshot.draw_at}` 추첨 / "
-                    f"`{snapshot.deadline_at}` 마감 / 닉네임 `지역) 이름` 필수"
+                    f"-# `{snapshot.reset_at}` 초기화, `{snapshot.draw_at}` 추첨, "
+                    f"`{snapshot.deadline_at}` 마감\n"
+                    "-# 닉네임 형식: `지역) 닉네임`"
                 )
             )
         )
@@ -398,7 +398,7 @@ class CancelConfirmView(_EphemeralPanel):
         )
         self.confirm_button.callback = self._confirm
         self.back_button = Button(
-            label="아니요",
+            label="돌아가기",
             style=ButtonStyle.secondary,
         )
         self.back_button.callback = self._back
@@ -412,7 +412,6 @@ class CancelConfirmView(_EphemeralPanel):
             ),
             Separator(),
             ActionRow(self.confirm_button, self.back_button),
-            TextDisplay(content=FOOTER_TEXT),
             accent_colour=Color.orange(),
         )
         self.add_item(container)

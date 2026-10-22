@@ -4,8 +4,6 @@ from __future__ import annotations
 import discord
 from discord.ui import Container, LayoutView, TextDisplay
 
-FOOTER_TEXT = "-# KEL Scrim Bot"
-
 
 def _build(body: str, accent: discord.Color) -> LayoutView:
     view = LayoutView()

@@ -200,9 +200,9 @@ class DashboardController:
             " [우선권]" if had_priority else "",
         )
         if had_priority:
-            body = f"`{parsed.region}` 신청 완료\n우선권이 적용되었습니다."
+            body = f"`{parsed.region}` 지역으로 신청했습니다.\n우선권이 적용되었습니다."
         else:
-            body = f"`{parsed.region}` 신청 완료"
+            body = f"`{parsed.region}` 지역으로 신청했습니다."
         await interaction.response.send_message(
             view=success_view(body),
             ephemeral=True,
