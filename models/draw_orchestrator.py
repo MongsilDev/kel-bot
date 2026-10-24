@@ -124,8 +124,11 @@ class DrawOrchestrator:
         else:
             normal_apps = [a for a in active if a.region not in priority_regions]
             if len(priority_apps) >= team_slots:
-                selected = priority_apps[:team_slots]
-                rejected = priority_apps[team_slots:] + normal_apps
+                # 정원 이상이면 우선권 팀끼리 무작위 (상시와 하루 우선권 구분 없음)
+                priority_pool = list(priority_apps)
+                random.shuffle(priority_pool)
+                selected = priority_pool[:team_slots]
+                rejected = priority_pool[team_slots:] + normal_apps
             else:
                 remaining_slots = team_slots - len(priority_apps)
                 random_pool = list(normal_apps)
@@ -148,12 +151,15 @@ class DrawOrchestrator:
         for region in applied_priority_regions:
             self.priorities.consume(region, scrim_date)
 
-        # 다음날(D+1) 우선권 발급: 탈락 팀, 신청 시각 빠른 순 상위 8
+        # 다음날(D+1) 우선권 발급: 탈락 팀, 신청 시각 빠른 순 상위 8 (상시 우선권 지역 제외)
         rejected_sorted = sorted(rejected, key=lambda a: a.applied_at)
         next_date = (date.fromisoformat(scrim_date) + timedelta(days=1)).isoformat()
-        granted_regions = [a.region for a in rejected_sorted[:team_slots]]
-        if granted_regions:
-            self.priorities.grant(granted_regions, next_date, slot_cap=team_slots)
+        granted_regions: list[str] = []
+        if rejected_sorted:
+            granted = self.priorities.grant(
+                [a.region for a in rejected_sorted], next_date, slot_cap=team_slots
+            )
+            granted_regions = [p.region for p in granted]
 
         # 추첨 상태 갱신
         self.draw_state.status = DrawStatus.DONE

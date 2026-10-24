@@ -255,3 +255,38 @@ def test_confirm_remove_rejects_when_target_changed_by_draw(tmp_path):
     assert mgr.state.priorities.regions_for(nxt) == {"광주"}
     # 제거 로그도 남지 않음
     assert mgr.state.audit.entries_for(d) == []
+
+
+def _controller_with_permanent(tmp_path, permanent):
+    from dataclasses import replace
+
+    settings = replace(_settings(tmp_path), permanent_priority_regions=frozenset(permanent))
+    mgr = ScheduleManager(
+        settings,
+        tmp_path,
+        on_draw=_noop,
+        on_state_changed=_noop,
+        on_deadline_cancelled=_noop,
+        on_reset=_noop,
+    )
+    ctrl = DashboardController(bot=object(), settings=settings, schedule=mgr)
+    ctrl._dashboard_message = None
+    return ctrl, mgr
+
+
+def test_removable_excludes_permanent(tmp_path):
+    ctrl, mgr = _controller_with_permanent(tmp_path, {"대전"})
+    d = mgr.state.draw_state.scrim_date
+    mgr.state.priorities.grant(["광주"], d, slot_cap=8)
+    _, regions = ctrl._removable_priority()
+    assert regions == ["광주"]
+    assert ctrl._current_snapshot().priority_regions == {"광주", "대전"}
+
+
+def test_confirm_remove_keeps_permanent(tmp_path):
+    ctrl, mgr = _controller_with_permanent(tmp_path, {"대전"})
+    d = mgr.state.draw_state.scrim_date
+    it = _Interaction(42, "서울) 운영자")
+    asyncio.run(ctrl._confirm_remove_priority(it, "대전", d))
+    assert mgr.state.priorities.has("대전", d)
+    assert mgr.state.audit.entries_for(d) == []

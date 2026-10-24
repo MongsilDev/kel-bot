@@ -110,7 +110,7 @@ class DashboardController:
         scrim_date = state.draw_state.scrim_date
         priority_regions = state.priorities.regions_for(scrim_date)
         next_date = (date_cls.fromisoformat(scrim_date) + timedelta(days=1)).isoformat()
-        next_day_priority_regions = state.priorities.regions_for(next_date)
+        next_day_priority_regions = state.priorities.dated_regions_for(next_date)
         application_open = self._is_application_window_open(scrim_date)
         removal_log = sorted(
             state.audit.entries_for(scrim_date) + state.audit.entries_for(next_date),
@@ -265,7 +265,7 @@ class DashboardController:
             target = (date_cls.fromisoformat(scrim_date) + timedelta(days=1)).isoformat()
         else:
             target = scrim_date
-        return target, sorted(state.priorities.regions_for(target))
+        return target, sorted(state.priorities.dated_regions_for(target))
 
     async def handle_manage_priority(self, interaction: discord.Interaction) -> None:
         # 패널을 연 시점의 대상 일자를 고정. 그 사이 추첨이나 리셋으로 바뀌면 확정 단계에서 거부

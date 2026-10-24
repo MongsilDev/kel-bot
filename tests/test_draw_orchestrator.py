@@ -139,3 +139,51 @@ def test_single_mode_draw_order_differs_from_application_order(tmp_path):
     draw_seq = [a.team_id for a in sorted(res.selected, key=lambda a: a.draw_order)]
     app_seq = [a.team_id for a in sorted(res.selected, key=lambda a: a.applied_at)]
     assert draw_seq != app_seq
+
+
+def _priority_run(tmp_path, n, permanent, dated=()):
+    apps = ApplicationStore(path=tmp_path / "a.json", scrim_date=SCRIM, applications=_apps(n))
+    pri = PriorityStore.load(tmp_path / "p.json", frozenset(permanent))
+    if dated:
+        pri.grant(list(dated), SCRIM, slot_cap=8)
+    ds = DrawState.load(tmp_path / "d.json", SCRIM)
+    return DrawOrchestrator(apps, pri, ds, team_slots=8)._execute_draw(), pri
+
+
+def test_permanent_priority_selected_first(tmp_path):
+    res, _ = _priority_run(tmp_path, 12, permanent={"R10", "R11"})
+    ids = {a.team_id for a in res.selected}
+    assert {"t10", "t11"} <= ids
+    assert all(a.had_priority for a in res.selected if a.team_id in ("t10", "t11"))
+
+
+def test_priority_over_slots_random_among_priority(tmp_path):
+    """우선권 팀이 정원을 넘으면 신청 순서가 아닌 무작위로 뽑는다. 상시와 하루 우선권은 같은 순위."""
+    import random
+
+    permanent = {f"R{i}" for i in range(6)}
+    dated = [f"R{i}" for i in range(6, 10)]
+    picks = set()
+    for seed in range(20):
+        random.seed(seed)
+        res, _ = _priority_run(tmp_path / str(seed), 12, permanent=permanent, dated=dated)
+        assert len(res.selected) == 8
+        assert all(a.region in permanent or a.region in dated for a in res.selected)
+        assert {"t10", "t11"} <= {a.team_id for a in res.rejected}
+        picks.add(frozenset(a.team_id for a in res.selected))
+    applied_first8 = frozenset(f"t{i}" for i in range(8))
+    assert any(p != applied_first8 for p in picks)
+
+
+def test_rejected_permanent_not_granted_again(tmp_path):
+    import random
+
+    permanent = {f"R{i}" for i in range(6)}
+    dated = [f"R{i}" for i in range(6, 10)]
+    random.seed(0)
+    res, pri = _priority_run(tmp_path, 12, permanent=permanent, dated=dated)
+    nxt = "2026-05-31"
+    rejected_regions = {a.region for a in res.rejected}
+    assert set(res.granted_priority_regions) == rejected_regions - permanent
+    assert pri.dated_regions_for(nxt) == rejected_regions - permanent
+    assert pri.regions_for(nxt) >= permanent

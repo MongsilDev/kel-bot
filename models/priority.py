@@ -32,12 +32,13 @@ class Priority:
 class PriorityStore:
     path: Path
     priorities: list[Priority] = field(default_factory=list)
+    permanent: frozenset[str] = frozenset()  # 설정값, 파일에 저장하지 않음
 
     @classmethod
-    def load(cls, path: Path) -> "PriorityStore":
+    def load(cls, path: Path, permanent: frozenset[str] = frozenset()) -> "PriorityStore":
         raw = read_json(path, default={"priorities": []})
         items = [Priority.from_dict(p) for p in raw.get("priorities", [])]
-        store = cls(path=path, priorities=items)
+        store = cls(path=path, priorities=items, permanent=permanent)
         return store
 
     def save(self) -> None:
@@ -48,6 +49,10 @@ class PriorityStore:
 
     # 조회 ---------------------------------------------------------------
     def regions_for(self, scrim_date: str) -> set[str]:
+        return self.dated_regions_for(scrim_date) | self.permanent
+
+    def dated_regions_for(self, scrim_date: str) -> set[str]:
+        """상시 우선권을 뺀 해당 일자 활성 우선권. 수동 제거 대상."""
         return {p.region for p in self.priorities if p.valid_for_date == scrim_date and not p.consumed}
 
     def has(self, region: str, scrim_date: str) -> bool:
@@ -58,9 +63,9 @@ class PriorityStore:
 
     # 변경 ---------------------------------------------------------------
     def grant(self, regions: list[str], valid_for_date: str, slot_cap: int) -> list[Priority]:
-        """탈락 지역에 우선권 발급. 정원(slot_cap) 초과 시 앞쪽만 발급."""
+        """탈락 지역에 우선권 발급. 상시 우선권 지역은 건너뛰고, 정원(slot_cap) 초과 시 앞쪽만 발급."""
         granted: list[Priority] = []
-        for region in regions[:slot_cap]:
+        for region in [r for r in regions if r not in self.permanent][:slot_cap]:
             p = Priority(
                 region=region,
                 granted_at=iso_now(),

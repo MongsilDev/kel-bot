@@ -63,7 +63,9 @@ class ScheduleManager:
         scrim_date = current_scrim_date(self.settings.reset_hour).isoformat()
         self._state = StateBundle(
             applications=ApplicationStore.load(data_dir / "applications.json", scrim_date),
-            priorities=PriorityStore.load(data_dir / "priorities.json"),
+            priorities=PriorityStore.load(
+                data_dir / "priorities.json", settings.permanent_priority_regions
+            ),
             draw_state=DrawState.load(data_dir / "draw_state.json", scrim_date),
             audit=PriorityAuditStore.load(data_dir / "priority_audit.json"),
         )

@@ -66,3 +66,46 @@ def test_grant_one_readds_after_consumed(tmp_path):
     store = _store(tmp_path, [_p("광주", consumed=True)])
     assert store.grant_one("광주", DATE) is True
     assert store.regions_for(DATE) == {"광주"}
+
+
+PERMANENT = frozenset({"대전", "경북"})
+
+
+def _perm_store(tmp_path, priorities):
+    return PriorityStore(path=tmp_path / "p.json", priorities=priorities, permanent=PERMANENT)
+
+
+def test_permanent_included_every_day(tmp_path):
+    store = _perm_store(tmp_path, [_p("광주")])
+    assert store.regions_for(DATE) == {"광주", "대전", "경북"}
+    assert store.regions_for("2026-12-31") == {"대전", "경북"}
+    assert store.has("대전", "2026-12-31")
+    assert store.dated_regions_for(DATE) == {"광주"}
+
+
+def test_permanent_survives_consume_revoke_expire_purge(tmp_path):
+    store = _perm_store(tmp_path, [])
+    store.consume("대전", DATE)
+    assert store.revoke("대전", DATE) is False
+    store.expire_for(DATE)
+    store.purge_outdated("2026-06-30")
+    assert store.has("대전", DATE)
+
+
+def test_permanent_not_saved(tmp_path):
+    store = _perm_store(tmp_path, [])
+    store.save()
+    assert PriorityStore.load(tmp_path / "p.json").regions_for(DATE) == set()
+
+
+def test_grant_skips_permanent_before_cap(tmp_path):
+    store = _perm_store(tmp_path, [])
+    granted = store.grant(["대전", "광주", "경북", "부산"], DATE, slot_cap=2)
+    assert [p.region for p in granted] == ["광주", "부산"]
+    assert store.dated_regions_for(DATE) == {"광주", "부산"}
+
+
+def test_grant_one_rejects_permanent(tmp_path):
+    store = _perm_store(tmp_path, [])
+    assert store.grant_one("대전", DATE) is False
+    assert store.dated_regions_for(DATE) == set()
