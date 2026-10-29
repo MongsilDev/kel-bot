@@ -14,6 +14,7 @@ class Priority:
     granted_at: str
     valid_for_date: str  # YYYY-MM-DD
     consumed: bool = False
+    tier: str = "normal"  # "normal" | "super"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -25,6 +26,7 @@ class Priority:
             granted_at=data["granted_at"],
             valid_for_date=data["valid_for_date"],
             consumed=data.get("consumed", False),
+            tier=data.get("tier", "normal"),
         )
 
 
@@ -55,6 +57,13 @@ class PriorityStore:
         """상시 우선권을 뺀 해당 일자 활성 우선권. 수동 제거 대상."""
         return {p.region for p in self.priorities if p.valid_for_date == scrim_date and not p.consumed}
 
+    def super_regions_for(self, scrim_date: str) -> set[str]:
+        return {
+            p.region
+            for p in self.priorities
+            if p.valid_for_date == scrim_date and not p.consumed and p.tier == "super"
+        }
+
     def has(self, region: str, scrim_date: str) -> bool:
         return region in self.regions_for(scrim_date)
 
@@ -71,6 +80,32 @@ class PriorityStore:
                 granted_at=iso_now(),
                 valid_for_date=valid_for_date,
                 consumed=False,
+            )
+            self.priorities.append(p)
+            granted.append(p)
+        self.save()
+        return granted
+
+    def grant_super(self, regions: list[str], valid_for_date: str) -> list[Priority]:
+        """최우선 발급. 정원 제한 없고 상시 우선권 지역에도 발급. 같은 날 활성 일반 항목은 승급."""
+        granted: list[Priority] = []
+        for region in regions:
+            active = [
+                p for p in self.priorities
+                if p.region == region and p.valid_for_date == valid_for_date and not p.consumed
+            ]
+            if any(p.tier == "super" for p in active):
+                continue
+            if active:
+                active[0].tier = "super"
+                granted.append(active[0])
+                continue
+            p = Priority(
+                region=region,
+                granted_at=iso_now(),
+                valid_for_date=valid_for_date,
+                consumed=False,
+                tier="super",
             )
             self.priorities.append(p)
             granted.append(p)

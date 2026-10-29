@@ -175,7 +175,7 @@ def test_priority_over_slots_random_among_priority(tmp_path):
     assert any(p != applied_first8 for p in picks)
 
 
-def test_rejected_permanent_not_granted_again(tmp_path):
+def test_rejected_priority_gets_super_not_normal(tmp_path):
     import random
 
     permanent = {f"R{i}" for i in range(6)}
@@ -184,6 +184,8 @@ def test_rejected_permanent_not_granted_again(tmp_path):
     res, pri = _priority_run(tmp_path, 12, permanent=permanent, dated=dated)
     nxt = "2026-05-31"
     rejected_regions = {a.region for a in res.rejected}
-    assert set(res.granted_priority_regions) == rejected_regions - permanent
-    assert pri.dated_regions_for(nxt) == rejected_regions - permanent
+    priority = permanent | set(dated)
+    assert set(res.granted_super_regions) == rejected_regions & priority
+    assert set(res.granted_priority_regions) == rejected_regions - priority
+    assert pri.super_regions_for(nxt) == rejected_regions & priority
     assert pri.regions_for(nxt) >= permanent

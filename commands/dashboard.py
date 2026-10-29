@@ -123,6 +123,8 @@ class DashboardController:
             applications=state.applications.active(),
             priority_regions=priority_regions,
             next_day_priority_regions=next_day_priority_regions,
+            super_regions=state.priorities.super_regions_for(scrim_date),
+            next_day_super_regions=state.priorities.super_regions_for(next_date),
             draw_status=state.draw_state.status,
             drawn_at=state.draw_state.drawn_at,
             application_open=application_open,
@@ -178,12 +180,15 @@ class DashboardController:
             store = self.schedule.state.applications
             priorities = self.schedule.state.priorities
             try:
-                had_priority = priorities.has(parsed.region, self.schedule.state.draw_state.scrim_date)
+                scrim_date = self.schedule.state.draw_state.scrim_date
+                had_priority = priorities.has(parsed.region, scrim_date)
+                had_super = parsed.region in priorities.super_regions_for(scrim_date)
                 store.add(
                     region=parsed.region,
                     applicant_id=str(member.id),
                     applicant_display=display_name,
                     had_priority=had_priority,
+                    had_super=had_super,
                 )
             except ApplicationError as exc:
                 await interaction.response.send_message(
@@ -197,9 +202,11 @@ class DashboardController:
             parsed.region,
             display_name,
             member.id,
-            " [우선권]" if had_priority else "",
+            " [최우선]" if had_super else " [우선권]" if had_priority else "",
         )
-        if had_priority:
+        if had_super:
+            body = f"`{parsed.region}` 지역으로 신청했습니다.\n최우선이 적용되었습니다."
+        elif had_priority:
             body = f"`{parsed.region}` 지역으로 신청했습니다.\n우선권이 적용되었습니다."
         else:
             body = f"`{parsed.region}` 지역으로 신청했습니다."
@@ -270,6 +277,7 @@ class DashboardController:
     async def handle_manage_priority(self, interaction: discord.Interaction) -> None:
         # 패널을 연 시점의 대상 일자를 고정. 그 사이 추첨이나 리셋으로 바뀌면 확정 단계에서 거부
         opened_target, regions = self._removable_priority()
+        super_regions = self.schedule.state.priorities.super_regions_for(opened_target)
         target_label = self._target_label(opened_target)
 
         async def on_add(it: discord.Interaction) -> None:
@@ -281,6 +289,7 @@ class DashboardController:
         view = PriorityManageView(
             target_label=target_label,
             removable_regions=regions,
+            super_regions=super_regions,
             on_add=on_add,
             on_remove_select=on_remove_select,
         )
