@@ -31,6 +31,7 @@ class Application:
     applied_at: str
     scrim_date: str
     had_priority: bool = False
+    had_super: bool = False
     status: ApplicationStatus = ApplicationStatus.PENDING
     group: str | None = None  # 두 중대 편성 시 "A"(1중대) / "B"(2중대)
     draw_order: int | None = None  # 추첨 시 조 내 무작위 표시 순서 (셔플 결과 고정)
@@ -50,6 +51,7 @@ class Application:
             applied_at=data["applied_at"],
             scrim_date=data["scrim_date"],
             had_priority=data.get("had_priority", False),
+            had_super=data.get("had_super", False),
             status=ApplicationStatus(data.get("status", "pending")),
             group=data.get("group"),
             draw_order=data.get("draw_order"),
@@ -117,6 +119,7 @@ class ApplicationStore:
         applicant_id: str,
         applicant_display: str,
         had_priority: bool = False,
+        had_super: bool = False,
     ) -> Application:
         if self.by_user(applicant_id):
             raise ApplicationError("이미 신청했습니다.")
@@ -130,6 +133,7 @@ class ApplicationStore:
             applied_at=iso_now(),
             scrim_date=self.scrim_date,
             had_priority=had_priority,
+            had_super=had_super,
         )
         self.applications.append(app)
         self.save()

@@ -78,6 +78,8 @@ class DashboardSnapshot:
     deadline_at: str = "17:00"
     previous_cancel: Optional[dict] = None
     removal_log: List[RemovalEntry] = field(default_factory=list)
+    super_regions: set[str] = field(default_factory=set)
+    next_day_super_regions: set[str] = field(default_factory=set)
 
 
 def _format_pending_lines(snapshot: DashboardSnapshot) -> str:
@@ -86,9 +88,20 @@ def _format_pending_lines(snapshot: DashboardSnapshot) -> str:
         return "_아직 신청한 팀이 없습니다._"
     lines = []
     for idx, app in enumerate(apps, start=1):
-        marker = "★ " if app.region in snapshot.priority_regions else "　 "
+        if app.region in snapshot.super_regions:
+            marker = "🌟 "
+        elif app.region in snapshot.priority_regions:
+            marker = "★ "
+        else:
+            marker = "　 "
         lines.append(f"`{idx:>2}.` {marker}{escape_markdown(app.applicant_display)}")
     return "\n".join(lines)
+
+
+def _had_marker(app: Application) -> str:
+    if app.had_super:
+        return "🌟 "
+    return "★ " if app.had_priority else "　 "
 
 
 def _format_selected_lines(snapshot: DashboardSnapshot) -> str:
@@ -97,7 +110,7 @@ def _format_selected_lines(snapshot: DashboardSnapshot) -> str:
         return "_없음_"
     lines = []
     for idx, app in enumerate(apps, start=1):
-        marker = "★ " if app.had_priority else "　 "
+        marker = _had_marker(app)
         lines.append(f"`{idx:>2}.` {marker}{escape_markdown(app.applicant_display)}")
     return "\n".join(lines)
 
@@ -111,7 +124,7 @@ def _format_group_lines(snapshot: DashboardSnapshot, group_label: str) -> str:
         return "_없음_"
     lines = []
     for idx, app in enumerate(apps, start=1):
-        marker = "★ " if app.had_priority else "　 "
+        marker = _had_marker(app)
         lines.append(f"`{idx:>2}.` {marker}{escape_markdown(app.applicant_display)}")
     return "\n".join(lines)
 
@@ -255,8 +268,12 @@ class DashboardView(LayoutView):
         if previous_cancel:
             header_lines.append(previous_cancel)
         header_lines.append(header_status)
-        if not is_done and snapshot.priority_regions:
-            priority_text = escape_markdown(", ".join(sorted(snapshot.priority_regions)))
+        if not is_done and snapshot.super_regions:
+            super_text = escape_markdown(", ".join(sorted(snapshot.super_regions)))
+            header_lines.append(f"🌟 최우선: {super_text}")
+        normal_priority = snapshot.priority_regions - snapshot.super_regions
+        if not is_done and normal_priority:
+            priority_text = escape_markdown(", ".join(sorted(normal_priority)))
             header_lines.append(f"⭐ 우선권: {priority_text}")
 
         children = [
@@ -280,8 +297,12 @@ class DashboardView(LayoutView):
             if any(a.status is ApplicationStatus.REJECTED for a in snapshot.applications):
                 rejected = _format_rejected_lines(snapshot)
                 children.append(TextDisplay(content=f"### 탈락 팀\n{rejected}"))
-            if snapshot.next_day_priority_regions:
-                next_priority_text = escape_markdown(", ".join(sorted(snapshot.next_day_priority_regions)))
+            if snapshot.next_day_super_regions:
+                next_super_text = escape_markdown(", ".join(sorted(snapshot.next_day_super_regions)))
+                children.append(TextDisplay(content=f"-# 내일 최우선: {next_super_text}"))
+            next_normal = snapshot.next_day_priority_regions - snapshot.next_day_super_regions
+            if next_normal:
+                next_priority_text = escape_markdown(", ".join(sorted(next_normal)))
                 children.append(TextDisplay(content=f"-# 내일 우선권: {next_priority_text}"))
         else:
             teams = _format_pending_lines(snapshot)
@@ -436,6 +457,7 @@ class PriorityManageView(_EphemeralPanel):
         *,
         target_label: str,
         removable_regions: List[str],
+        super_regions: frozenset[str] | set[str] = frozenset(),
         on_add: ManagePriorityHandler,
         on_remove_select: RemoveSelectHandler,
     ) -> None:
@@ -450,7 +472,8 @@ class PriorityManageView(_EphemeralPanel):
         )
         self.add_button.callback = self._on_add
 
-        current = escape_markdown(", ".join(removable_regions)) if removable_regions else "없음"
+        labels = {r: f"{r} 최우선" if r in super_regions else r for r in removable_regions}
+        current = escape_markdown(", ".join(labels.values())) if removable_regions else "없음"
         children = [
             TextDisplay(content=f"## ⭐ 우선권 {target_label}\n현재 {current}"),
             Separator(),
@@ -461,7 +484,7 @@ class PriorityManageView(_EphemeralPanel):
                 placeholder="제거할 지역",
                 min_values=1,
                 max_values=1,
-                options=[discord.SelectOption(label=r, value=r) for r in removable_regions],
+                options=[discord.SelectOption(label=labels[r], value=r) for r in removable_regions],
             )
             self.select.callback = self._on_remove
             children.append(ActionRow(self.select))
