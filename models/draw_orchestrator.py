@@ -100,6 +100,9 @@ class DrawOrchestrator:
         priority_apps = [a for a in active if a.region in priority_regions]
         for app in priority_apps:
             app.had_priority = True
+        # 신청 뒤 최우선이 제거됐을 수 있어 추첨 시점 기준으로 다시 정함
+        for app in active:
+            app.had_super = app.region in super_regions
 
         groups: dict[str, list[Application]] | None = None
 
@@ -125,8 +128,6 @@ class DrawOrchestrator:
             groups = {"A": group_a, "B": group_b}
         else:
             super_apps = [a for a in priority_apps if a.region in super_regions]
-            for app in super_apps:
-                app.had_super = True
             rest_priority = [a for a in priority_apps if a.region not in super_regions]
             normal_apps = [a for a in active if a.region not in priority_regions]
             if len(super_apps) >= team_slots:

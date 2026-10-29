@@ -176,7 +176,18 @@ def test_14_teams_unchanged_by_super(tmp_path):
     assert len(res.selected) == 14
     assert res.rejected == []
     assert res.granted_super_regions == [] and res.granted_priority_regions == []
-    assert not any(a.had_super for a in res.selected)
+    assert {a.region for a in res.selected if a.had_super} == {"R0", "R1"}
+
+
+def test_had_super_reset_when_revoked_before_draw(tmp_path):
+    pri = PriorityStore.load(tmp_path / "p.json")
+    pri.grant_super(["R0"], D)
+    orch = _draw(tmp_path, pri, _regions(10))
+    for a in orch.applications.active():
+        a.had_super = a.region == "R0"
+    pri.revoke("R0", D)
+    res = orch._execute_draw()
+    assert not any(a.had_super for a in res.selected + res.rejected)
 
 
 # 유효 기간 --------------------------------------------------------------
