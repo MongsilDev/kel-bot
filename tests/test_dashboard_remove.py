@@ -290,3 +290,15 @@ def test_confirm_remove_keeps_permanent(tmp_path):
     asyncio.run(ctrl._confirm_remove_priority(it, "대전", d))
     assert mgr.state.priorities.has("대전", d)
     assert mgr.state.audit.entries_for(d) == []
+
+
+def test_confirm_remove_super_on_permanent_reports_super(tmp_path):
+    ctrl, mgr = _controller_with_permanent(tmp_path, {"대전"})
+    d = mgr.state.draw_state.scrim_date
+    mgr.state.priorities.grant_super(["대전"], d)
+    it = _Interaction(42, "서울) 운영자")
+    asyncio.run(ctrl._confirm_remove_priority(it, "대전", d))
+    assert mgr.state.priorities.super_regions_for(d) == set()
+    assert mgr.state.priorities.has("대전", d)
+    texts = [c.content for c in it.response.edited["view"].walk_children() if hasattr(c, "content")]
+    assert any("`대전` 최우선을 제거했습니다." in t for t in texts)

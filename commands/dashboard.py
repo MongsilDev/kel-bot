@@ -365,6 +365,7 @@ class DashboardController:
             state = self.schedule.state
             current_target, _ = self._removable_priority()
             stale = current_target != opened_target
+            was_super = region in state.priorities.super_regions_for(opened_target)
             if stale:
                 await interaction.response.edit_message(view=info_view(_STALE_MESSAGE))
             elif not state.priorities.revoke(region, opened_target):
@@ -389,7 +390,7 @@ class DashboardController:
             region, display, interaction.user.id, opened_target,
         )
         await interaction.response.edit_message(
-            view=success_view(f"`{region}` 우선권을 제거했습니다."),
+            view=success_view(f"`{region}` {'최우선' if was_super else '우선권'}을 제거했습니다."),
         )
         await self.refresh()
 
